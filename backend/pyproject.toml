@@ -1,0 +1,38 @@
+[project]
+name = "vk-archive-messages-parser-backend"
+version = "0.1.0"
+description = "Backend for local VK archive message viewer"
+requires-python = ">=3.12"
+dependencies = [
+    "alembic>=1.16.0",
+    "beautifulsoup4>=4.13.0",
+    "fastapi>=0.115.0",
+    "pydantic-settings>=2.9.0",
+    "sqlalchemy>=2.0.40",
+    "structlog>=25.4.0",
+    "uvicorn>=0.34.0",
+]
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28.1",
+    "pre-commit>=4.2.0",
+    "pytest>=8.4.0",
+    "pytest-cov>=6.1.1",
+    "ruff>=0.11.12",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+addopts = "--cov=app --cov-report=term-missing"
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+
+[tool.ruff.format]
+quote-style = "double"

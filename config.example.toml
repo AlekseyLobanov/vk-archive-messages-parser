@@ -1,0 +1,12 @@
+[database]
+url = "sqlite:///data/vk_messages.db"
+
+[logging]
+level = "INFO"
+path = "logs/backend.log"
+max_bytes = 1048576
+backup_count = 3
+
+[server]
+host = "127.0.0.1"
+port = 8000

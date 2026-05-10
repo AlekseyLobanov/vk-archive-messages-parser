@@ -1,0 +1,44 @@
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.12
+    hooks:
+      # Run the linter.
+      - id: ruff-check
+        types_or: [ python, pyi, jupyter ]
+        args: [ --fix, --line-length=88 ]
+      # Run the formatter.
+      - id: ruff-format
+        types_or: [ python, pyi, jupyter ]
+        args: [ --line-length=88 ]
+  - repo: https://github.com/PyCQA/flake8
+    rev: 7.1.1
+    hooks:
+      - id: flake8
+        args: # arguments to configure flake8
+          # making isort line length compatible with black
+          - "--max-line-length=88"
+          - "--max-complexity=18"
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.3.0
+    hooks:
+      - id: check-yaml
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: check-json
+  - repo: local
+    hooks:
+      - id: web-eslint
+        name: web-eslint
+        entry: npm --prefix web run lint
+        language: system
+        pass_filenames: false
+      - id: web-typecheck
+        name: web-typecheck
+        entry: npm --prefix web run typecheck
+        language: system
+        pass_filenames: false
+      - id: web-tests
+        name: web-tests
+        entry: npm --prefix web run test -- --run
+        language: system
+        pass_filenames: false
