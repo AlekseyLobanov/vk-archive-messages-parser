@@ -64,3 +64,13 @@ async def test_import_search_messages_and_export(client, archive_root) -> None:
     )
     assert export_response.status_code == 200
     assert export_response.headers["content-disposition"].endswith('messages.jsonl"')
+
+
+@pytest.mark.anyio
+async def test_import_rejects_relative_path_without_loaded_config(client) -> None:
+    response = await client.post("/api/v1/add", json={"path": "fixtures/messages"})
+
+    assert response.status_code == 400
+    assert response.json() == {
+        "detail": "Relative import path requires a loaded config file"
+    }

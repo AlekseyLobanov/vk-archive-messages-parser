@@ -1,3 +1,4 @@
+import json
 from collections.abc import AsyncIterator
 from datetime import datetime
 from pathlib import Path
@@ -45,7 +46,13 @@ async def add_archive(request_data: AddRequest, request: Request) -> StreamingRe
     if not archive_path.is_absolute():
         # Local-only app: import paths are intentionally unrestricted and are
         # resolved relative to the chosen config directory for convenience.
-        archive_path = (config_dir() / archive_path).resolve()
+        try:
+            archive_path = (config_dir() / archive_path).resolve()
+        except RuntimeError as exc:
+            raise HTTPException(
+                status_code=400,
+                detail="Relative import path requires a loaded config file",
+            ) from exc
 
     if not archive_path.exists():
         raise HTTPException(status_code=400, detail="Import path does not exist")
@@ -57,7 +64,7 @@ async def add_archive(request_data: AddRequest, request: Request) -> StreamingRe
                 yield f"data: {payload.model_dump_json()}\n\n"
         except FileNotFoundError as exc:
             yield "event: error\n"
-            yield f'data: {{"detail": "{str(exc)}"}}\n\n'
+            yield f"data: {json.dumps({'detail': str(exc)}, ensure_ascii=False)}\n\n"
 
     return StreamingResponse(event_stream(), media_type="text/event-stream")
 
