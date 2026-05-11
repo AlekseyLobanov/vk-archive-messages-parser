@@ -3,7 +3,7 @@ WEB_DIR := web
 DEMO_DATA_ARGS ?= --reset
 UV_ENV := $(if $(UV_CACHE_DIR),UV_CACHE_DIR=$(UV_CACHE_DIR),)
 
-.PHONY: backend frontend test tests lint format frontend-test frontend-lint frontend-typecheck frontend-build frontend-check pre-commit demo-data
+.PHONY: backend frontend test tests lint format frontend-test frontend-test-coverage frontend-lint frontend-typecheck frontend-build frontend-check pre-commit demo-data
 .PHONY: migrate
 
 backend:
@@ -28,6 +28,9 @@ frontend:
 
 frontend-test:
 	npm --prefix $(WEB_DIR) run test -- --run
+
+frontend-test-coverage:
+	npm --prefix $(WEB_DIR) run test:coverage
 
 frontend-lint:
 	npm --prefix $(WEB_DIR) run lint
