@@ -13,13 +13,11 @@ def _json_dumps(event: dict, **kwargs) -> str:
     return json.dumps(event, **kwargs)
 
 
-def configure_logging(level: str, path: str, max_bytes: int, backup_count: int) -> None:
-    log_path = Path(path)
-    log_path.parent.mkdir(parents=True, exist_ok=True)
-
-    shared_processor = ProcessorFormatter(
+def _shared_formatter() -> ProcessorFormatter:
+    return ProcessorFormatter(
         processors=[
             ProcessorFormatter.remove_processors_meta,
+            structlog.processors.format_exc_info,
             structlog.processors.JSONRenderer(serializer=_json_dumps),
         ],
         foreign_pre_chain=[
@@ -27,6 +25,13 @@ def configure_logging(level: str, path: str, max_bytes: int, backup_count: int) 
             structlog.stdlib.add_log_level,
         ],
     )
+
+
+def configure_logging(level: str, path: str, max_bytes: int, backup_count: int) -> None:
+    log_path = Path(path)
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+
+    shared_processor = _shared_formatter()
     handlers: list[logging.Handler] = [
         logging.StreamHandler(sys.stdout),
         RotatingFileHandler(
@@ -45,10 +50,18 @@ def configure_logging(level: str, path: str, max_bytes: int, backup_count: int) 
         handlers=handlers,
         force=True,
     )
+    level_value = getattr(logging, level.upper(), logging.INFO)
+    for logger_name in ("uvicorn", "uvicorn.error", "uvicorn.access"):
+        logger = logging.getLogger(logger_name)
+        logger.handlers = handlers
+        logger.setLevel(level_value)
+        logger.propagate = False
+
     structlog.configure(
         processors=[
             structlog.processors.TimeStamper(fmt="iso", utc=True),
             structlog.stdlib.add_log_level,
+            structlog.processors.format_exc_info,
             ProcessorFormatter.wrap_for_formatter,
         ],
         wrapper_class=structlog.stdlib.BoundLogger,

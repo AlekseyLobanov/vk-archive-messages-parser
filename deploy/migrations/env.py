@@ -1,13 +1,8 @@
-from logging.config import fileConfig
-
 from alembic import context
 from app.db.base import Base
 from sqlalchemy import engine_from_config, pool, text
 
 config = context.config
-
-if config.config_file_name is not None:
-    fileConfig(config.config_file_name)
 
 target_metadata = Base.metadata
 

@@ -44,3 +44,25 @@ def test_alembic_logger_does_not_propagate_to_root() -> None:
     logger = logging.getLogger("alembic")
 
     assert not logger.propagate
+
+
+def test_uvicorn_loggers_write_once_with_formatted_exceptions(tmp_path: Path) -> None:
+    log_path = tmp_path / "logs" / "backend.log"
+    configure_logging("INFO", str(log_path), max_bytes=1024, backup_count=1)
+
+    logging.getLogger("uvicorn.access").info(
+        '127.0.0.1:37588 - "GET /api/v1/conversations HTTP/1.1" 200 OK'
+    )
+    try:
+        raise RuntimeError("boom")
+    except RuntimeError:
+        logging.getLogger("uvicorn.error").exception("request.failed")
+    for handler in logging.getLogger().handlers:
+        handler.flush()
+
+    lines = log_path.read_text(encoding="utf-8").splitlines()
+
+    assert len(lines) == 2
+    assert "GET /api/v1/conversations" in lines[0]
+    assert '"event": "request.failed"' in lines[1]
+    assert "RuntimeError: boom" in lines[1]

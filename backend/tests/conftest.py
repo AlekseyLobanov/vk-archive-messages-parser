@@ -10,11 +10,15 @@ from app.core.settings import (
     LoggingSettings,
     ServerSettings,
     Settings,
-    app_dir,
 )
 from app.db.init_db import run_migrations
 from app.db.session import create_engine, create_session_factory
 from app.main import create_app
+
+
+@pytest.fixture
+def archive_root() -> Path:
+    return Path(__file__).parent / "fixtures" / "messages"
 
 
 @pytest.fixture
@@ -66,11 +70,11 @@ def session_factory(test_settings: Settings):
 
 
 @pytest.fixture
-def imported_archive(session_factory) -> None:
+def imported_archive(session_factory, archive_root: Path) -> None:
     from app.services.importer import ImportService
 
     service = ImportService(session_factory)
-    list(service.import_archive(app_dir() / "messages"))
+    list(service.import_archive(archive_root))
 
 
 @pytest.fixture

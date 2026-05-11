@@ -322,10 +322,10 @@ class SearchRepository:
             params["user_id"] = request.user_id
         if request.date_from is not None:
             filters.append("m.timestamp >= :date_from")
-            params["date_from"] = request.date_from
+            params["date_from"] = request.date_from.isoformat()
         if request.date_to is not None:
             filters.append("m.timestamp <= :date_to")
-            params["date_to"] = request.date_to
+            params["date_to"] = request.date_to.isoformat()
 
         where_clause = " AND ".join(filters)
         rows = self.session.execute(

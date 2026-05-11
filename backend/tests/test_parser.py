@@ -1,17 +1,16 @@
 from bs4 import BeautifulSoup
 
-from app.core.settings import app_dir
 from app.parsers.vk_html import VKHTMLParser
 
 
-def test_parser_extracts_messages_and_attachments() -> None:
+def test_parser_extracts_messages_and_attachments(archive_root) -> None:
     parser = VKHTMLParser()
 
-    parsed = parser.parse_file(app_dir() / "messages/4043901/messages50.html")
+    parsed = parser.parse_file(archive_root / "303/messages50.html")
 
-    assert parsed.user_id == 4043901
+    assert parsed.user_id == 303
     assert parsed.display_name
-    assert parsed.owner_user_id == 135304077
+    assert parsed.owner_user_id == 42
     assert parsed.messages
     assert any(message.direction == "inbound" for message in parsed.messages)
     assert any(message.direction == "outbound" for message in parsed.messages)
@@ -23,23 +22,23 @@ def test_parser_extracts_messages_and_attachments() -> None:
     )
 
 
-def test_parser_supports_single_digit_hour_in_header() -> None:
+def test_parser_supports_single_digit_hour_in_header(archive_root) -> None:
     parser = VKHTMLParser()
 
-    parsed = parser.parse_file(app_dir() / "messages/-17801455/messages0.html")
+    parsed = parser.parse_file(archive_root / "-101/messages0.html")
 
-    assert parsed.user_id == -17801455
+    assert parsed.user_id == -101
     assert parsed.display_name
-    assert len(parsed.messages) == 12
+    assert len(parsed.messages) == 3
     assert any(message.timestamp.hour == 0 for message in parsed.messages)
 
 
-def test_parser_supports_edited_message_marker_in_header() -> None:
+def test_parser_supports_edited_message_marker_in_header(archive_root) -> None:
     parser = VKHTMLParser()
 
-    parsed = parser.parse_file(app_dir() / "messages/2000000063/messages2650.html")
+    parsed = parser.parse_file(archive_root / "202/messages2650.html")
 
-    assert parsed.user_id == 2000000063
+    assert parsed.user_id == 202
     assert parsed.display_name
     assert parsed.messages
     assert any(

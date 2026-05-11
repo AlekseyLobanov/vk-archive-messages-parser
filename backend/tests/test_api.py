@@ -1,7 +1,5 @@
 import pytest
 
-from app.core.settings import app_dir
-
 
 @pytest.mark.anyio
 async def test_get_conversations_empty(client) -> None:
@@ -27,9 +25,10 @@ async def test_serves_built_frontend(client) -> None:
 
 
 @pytest.mark.anyio
-async def test_import_search_messages_and_export(client) -> None:
-    messages_dir = (app_dir() / "messages").resolve()
-    import_response = await client.post("/api/v1/add", json={"path": str(messages_dir)})
+async def test_import_search_messages_and_export(client, archive_root) -> None:
+    import_response = await client.post(
+        "/api/v1/add", json={"path": str(archive_root.resolve())}
+    )
     body = import_response.text
 
     assert import_response.status_code == 200
@@ -43,14 +42,13 @@ async def test_import_search_messages_and_export(client) -> None:
     assert conversation_payload["total"] == 3
 
     search_response = await client.post(
-        "/api/v1/search",
-        json={"query": "github", "mode": "simple", "user_id": 4043901},
+        "/api/v1/search", json={"query": "github", "mode": "simple", "user_id": 303}
     )
     assert search_response.status_code == 200
     search_payload = search_response.json()
     assert search_payload["total"] >= 1
 
-    user_id = 4043901
+    user_id = 303
     messages_response = await client.get(
         f"/api/v1/messages/{user_id}",
         params={"around": search_payload["items"][0]["timestamp"], "limit": 2},

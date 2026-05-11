@@ -19,12 +19,6 @@ from app.db.session import create_engine, create_session_factory
 def _build_lifespan(app_settings: Settings):
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-        configure_logging(
-            app_settings.logging.level,
-            str(app_settings.logging.resolved_path()),
-            app_settings.logging.max_bytes,
-            app_settings.logging.backup_count,
-        )
         init_db(app_settings)
         engine = create_engine(app_settings.database.url)
         session_factory = create_session_factory(engine)
@@ -98,12 +92,19 @@ def load_settings(config_path: Path | None) -> Settings:
 def main() -> None:
     args = parse_args()
     settings = load_settings(args.config)
+    configure_logging(
+        settings.logging.level,
+        str(settings.logging.resolved_path()),
+        settings.logging.max_bytes,
+        settings.logging.backup_count,
+    )
     app_instance = create_app(settings)
     uvicorn.run(
         app_instance,
         host=settings.server.host,
         port=settings.server.port,
         reload=False,
+        log_config=None,
     )
 
 
