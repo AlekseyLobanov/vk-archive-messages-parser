@@ -178,7 +178,6 @@ cython_debug/
 web/node_modules/
 web/.vite/
 web/coverage/
-web-out/
 web/*.tsbuildinfo
 web/vite.config.d.ts
 web/vite.config.js
