@@ -199,3 +199,6 @@ ipython_config.py
 
 messages
 data
+logs/
+backend/logs/
+config.toml

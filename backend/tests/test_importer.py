@@ -1,6 +1,6 @@
 from sqlalchemy import select
 
-from app.core.settings import ROOT_DIR
+from app.core.settings import base_dir
 from app.models import Conversation, Message
 from app.services.importer import ImportService
 
@@ -8,7 +8,7 @@ from app.services.importer import ImportService
 def test_importer_imports_archive_and_is_idempotent(session_factory) -> None:
     service = ImportService(session_factory)
 
-    events = list(service.import_archive(ROOT_DIR / "messages"))
+    events = list(service.import_archive(base_dir() / "messages"))
     done_event = events[-1][1]
     progress_events = [
         payload for event_name, payload in events if event_name == "progress"
@@ -22,7 +22,7 @@ def test_importer_imports_archive_and_is_idempotent(session_factory) -> None:
     assert progress_events[-1].imported == done_event.imported
     assert progress_events[-1].skipped == done_event.skipped
 
-    events_second = list(service.import_archive(ROOT_DIR / "messages"))
+    events_second = list(service.import_archive(base_dir() / "messages"))
     done_event_second = events_second[-1][1]
     assert done_event_second.imported == 0
     assert done_event_second.skipped > 0

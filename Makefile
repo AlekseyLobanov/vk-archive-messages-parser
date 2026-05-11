@@ -1,29 +1,32 @@
 PYTHON := uv run
-UV_CACHE_DIR ?= /tmp/uv-cache
 WEB_DIR := web
+DEMO_DATA_ARGS ?= --reset
+UV_ENV := $(if $(UV_CACHE_DIR),UV_CACHE_DIR=$(UV_CACHE_DIR),)
 
-.PHONY: backend frontend tests lint format frontend-tests frontend-lint frontend-typecheck frontend-build frontend-check pre-commit
+.PHONY: backend frontend test tests lint format frontend-test frontend-lint frontend-typecheck frontend-build frontend-check pre-commit demo-data
 .PHONY: migrate
 
 backend:
-	VK_ARCHIVE_CONFIG=$(CURDIR)/config.toml UV_CACHE_DIR=$(UV_CACHE_DIR) $(PYTHON) --directory backend python -m app.main
+	$(UV_ENV) $(PYTHON) --directory backend python -m app.main $(ARGS)
 
-tests:
-	UV_CACHE_DIR=$(UV_CACHE_DIR) $(PYTHON) --directory backend pytest
+test:
+	$(UV_ENV) $(PYTHON) --directory backend pytest
+
+tests: test
 
 migrate:
-	UV_CACHE_DIR=$(UV_CACHE_DIR) $(PYTHON) --directory backend alembic -c ../alembic.ini upgrade head
+	$(UV_ENV) $(PYTHON) --directory backend alembic -c ../alembic.ini upgrade head
 
 lint:
-	UV_CACHE_DIR=$(UV_CACHE_DIR) $(PYTHON) --directory backend ruff check app tests
+	$(UV_ENV) $(PYTHON) --directory backend ruff check app test
 
 format:
-	UV_CACHE_DIR=$(UV_CACHE_DIR) $(PYTHON) --directory backend ruff format app tests
+	$(UV_ENV) $(PYTHON) --directory backend ruff format app test
 
 frontend:
 	npm --prefix $(WEB_DIR) run dev
 
-frontend-tests:
+frontend-test:
 	npm --prefix $(WEB_DIR) run test -- --run
 
 frontend-lint:
@@ -35,7 +38,10 @@ frontend-typecheck:
 frontend-build:
 	npm --prefix $(WEB_DIR) run build
 
-frontend-check: frontend-lint frontend-typecheck frontend-tests
+frontend-check: frontend-lint frontend-typecheck frontend-test
 
 pre-commit:
 	./backend/.venv/bin/pre-commit run --all-files
+
+demo-data:
+	$(UV_ENV) $(PYTHON) --directory backend python -m scripts.generate_demo_data $(DEMO_DATA_ARGS) $(ARGS)

@@ -1,8 +1,8 @@
-from collections.abc import Iterator
+from collections.abc import AsyncIterator
 from pathlib import Path
 
+import httpx
 import pytest
-from fastapi.testclient import TestClient
 from sqlalchemy import text
 
 from app.core.settings import (
@@ -32,19 +32,32 @@ def test_settings(tmp_path: Path) -> Settings:
 
 @pytest.fixture
 def app(test_settings: Settings):
-    return create_app(test_settings)
+    run_migrations(test_settings)
+    engine = create_engine(test_settings.database.url)
+    app = create_app(test_settings, use_lifespan=False)
+    app.state.settings = test_settings
+    app.state.engine = engine
+    app.state.session_factory = create_session_factory(engine)
+    try:
+        yield app
+    finally:
+        engine.dispose()
 
 
 @pytest.fixture
-def client(app) -> Iterator[TestClient]:
-    with TestClient(app) as test_client:
+async def client(app) -> AsyncIterator[httpx.AsyncClient]:
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(
+        transport=transport,
+        base_url="http://testserver",
+    ) as test_client:
         yield test_client
 
 
 @pytest.fixture
 def session_factory(test_settings: Settings):
     run_migrations(test_settings)
-    engine = create_engine(test_settings.database.resolved_url())
+    engine = create_engine(test_settings.database.url)
     try:
         yield create_session_factory(engine)
     finally:
@@ -64,3 +77,8 @@ def clean_fts(session_factory) -> None:
     with session_factory() as session:
         session.execute(text("DELETE FROM messages_fts"))
         session.commit()
+
+
+@pytest.fixture
+def anyio_backend() -> str:
+    return "asyncio"

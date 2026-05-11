@@ -4,47 +4,28 @@ from pathlib import Path
 
 from pydantic import BaseModel, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict, TomlConfigSettingsSource
-from sqlalchemy.engine import make_url
-
-ROOT_DIR = Path(__file__).resolve().parents[3]
 
 
-def _config_path() -> Path:
+def _config_path() -> Path | None:
     configured_path = os.getenv("VK_ARCHIVE_CONFIG")
-    if configured_path:
-        path = Path(configured_path)
-        if not path.is_absolute():
-            path = (ROOT_DIR / path).resolve()
-        return path
-    return ROOT_DIR / "config.toml"
+    if not configured_path:
+        return None
+    return Path(configured_path).expanduser().resolve()
+
+
+def base_dir() -> Path:
+    config_path = _config_path()
+    if config_path is not None:
+        return config_path.parent
+
+    current_dir = Path.cwd().resolve()
+    if (current_dir / "pyproject.toml").exists():
+        return current_dir.parent
+    return current_dir
 
 
 class DatabaseSettings(BaseModel):
-    url: str = "sqlite:///data/vk_messages.db"
-
-    def resolved_url(self) -> str:
-        url = make_url(self.url)
-        if url.get_backend_name() != "sqlite":
-            return self.url
-        database = url.database
-        if database is None or database == ":memory:":
-            return self.url
-        path = Path(database)
-        if not path.is_absolute():
-            path = (ROOT_DIR / path).resolve()
-        return f"sqlite:///{path}"
-
-    def sqlite_file_path(self) -> Path | None:
-        url = make_url(self.url)
-        if url.get_backend_name() != "sqlite":
-            return None
-        database = url.database
-        if database is None or database == ":memory:":
-            return None
-        path = Path(database)
-        if not path.is_absolute():
-            path = (ROOT_DIR / path).resolve()
-        return path
+    url: str
 
 
 class LoggingSettings(BaseModel):
@@ -56,7 +37,7 @@ class LoggingSettings(BaseModel):
     def resolved_path(self) -> Path:
         path = Path(self.path)
         if not path.is_absolute():
-            path = (ROOT_DIR / path).resolve()
+            path = (base_dir() / path).resolve()
         return path
 
 
@@ -84,12 +65,15 @@ class Settings(BaseSettings):
         dotenv_settings,
         file_secret_settings,
     ):
-        return (
+        sources = [
             init_settings,
             env_settings,
-            TomlConfigSettingsSource(settings_cls, _config_path()),
-            file_secret_settings,
-        )
+        ]
+        config_path = _config_path()
+        if config_path is not None:
+            sources.append(TomlConfigSettingsSource(settings_cls, config_path))
+        sources.append(file_secret_settings)
+        return tuple(sources)
 
 
 @lru_cache

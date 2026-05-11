@@ -1,13 +1,13 @@
 from bs4 import BeautifulSoup
 
-from app.core.settings import ROOT_DIR
+from app.core.settings import base_dir
 from app.parsers.vk_html import VKHTMLParser
 
 
 def test_parser_extracts_messages_and_attachments() -> None:
     parser = VKHTMLParser()
 
-    parsed = parser.parse_file(ROOT_DIR / "messages/4043901/messages50.html")
+    parsed = parser.parse_file(base_dir() / "messages/4043901/messages50.html")
 
     assert parsed.user_id == 4043901
     assert parsed.display_name
@@ -26,7 +26,7 @@ def test_parser_extracts_messages_and_attachments() -> None:
 def test_parser_supports_single_digit_hour_in_header() -> None:
     parser = VKHTMLParser()
 
-    parsed = parser.parse_file(ROOT_DIR / "messages/-17801455/messages0.html")
+    parsed = parser.parse_file(base_dir() / "messages/-17801455/messages0.html")
 
     assert parsed.user_id == -17801455
     assert parsed.display_name
@@ -37,7 +37,7 @@ def test_parser_supports_single_digit_hour_in_header() -> None:
 def test_parser_supports_edited_message_marker_in_header() -> None:
     parser = VKHTMLParser()
 
-    parsed = parser.parse_file(ROOT_DIR / "messages/2000000063/messages2650.html")
+    parsed = parser.parse_file(base_dir() / "messages/2000000063/messages2650.html")
 
     assert parsed.user_id == 2000000063
     assert parsed.display_name

@@ -1,4 +1,4 @@
-from collections.abc import Iterator
+from collections.abc import AsyncIterator
 from datetime import datetime
 from pathlib import Path
 
@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import Response, StreamingResponse
 from sqlalchemy.orm import Session, sessionmaker
 
-from app.core.settings import ROOT_DIR
+from app.core.settings import base_dir
 from app.repositories.storage import (
     ConversationRepository,
     MessageRepository,
@@ -30,24 +30,24 @@ def get_session_factory(request: Request) -> sessionmaker:
     return request.app.state.session_factory
 
 
-def get_session(request: Request) -> Iterator[Session]:
+async def get_session(request: Request) -> AsyncIterator[Session]:
     session_factory = get_session_factory(request)
     with session_factory() as session:
         yield session
 
 
 @router.post("/add")
-def add_archive(request_data: AddRequest, request: Request) -> StreamingResponse:
+async def add_archive(request_data: AddRequest, request: Request) -> StreamingResponse:
     session_factory = get_session_factory(request)
     import_service = ImportService(session_factory)
     archive_path = Path(request_data.path)
     if not archive_path.is_absolute():
-        archive_path = ROOT_DIR / archive_path
+        archive_path = (base_dir() / archive_path).resolve()
 
     if not archive_path.exists():
         raise HTTPException(status_code=400, detail="Import path does not exist")
 
-    def event_stream() -> Iterator[str]:
+    async def event_stream() -> AsyncIterator[str]:
         try:
             for event_name, payload in import_service.import_archive(archive_path):
                 yield f"event: {event_name}\n"
@@ -60,7 +60,7 @@ def add_archive(request_data: AddRequest, request: Request) -> StreamingResponse
 
 
 @router.get("/conversations", response_model=ConversationListResponse)
-def list_conversations(
+async def list_conversations(
     sort: str = "last_message_at",
     order: str = "desc",
     limit: int = 50,
@@ -75,7 +75,7 @@ def list_conversations(
 
 
 @router.get("/messages/{user_id}", response_model=MessageListResponse)
-def list_messages(
+async def list_messages(
     user_id: int,
     limit: int = 50,
     before: datetime | None = None,
@@ -97,7 +97,7 @@ def list_messages(
 
 
 @router.post("/search", response_model=SearchResponse)
-def search_messages(
+async def search_messages(
     request_data: SearchRequest,
     session: Session = Depends(get_session),  # noqa: B008
 ) -> SearchResponse:
@@ -109,7 +109,7 @@ def search_messages(
 
 
 @router.post("/export")
-def export(
+async def export(
     request_data: ExportRequest,
     session: Session = Depends(get_session),  # noqa: B008
 ) -> Response:
