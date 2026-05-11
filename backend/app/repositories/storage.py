@@ -156,40 +156,27 @@ class MessageRepository:
                 select(Message)
                 .where(Message.user_id == user_id, Message.timestamp < around)
                 .order_by(Message.timestamp.desc())
-                .limit(limit)
+                .limit(limit + 1)
             ).all()
-            anchor = self.session.scalars(
+            anchor = self.session.scalar(
                 select(Message)
                 .where(Message.user_id == user_id, Message.timestamp == around)
                 .limit(1)
-            ).all()
+            )
             newer = self.session.scalars(
                 select(Message)
                 .where(Message.user_id == user_id, Message.timestamp > around)
                 .order_by(Message.timestamp.asc())
-                .limit(limit)
+                .limit(limit + 1)
             ).all()
-            items = list(reversed(older)) + anchor + newer
-            has_older = bool(
-                self.session.scalar(
-                    select(func.count())
-                    .select_from(Message)
-                    .where(
-                        Message.user_id == user_id,
-                        Message.timestamp < (items[0].timestamp if items else around),
-                    )
-                )
-            )
-            has_newer = bool(
-                self.session.scalar(
-                    select(func.count())
-                    .select_from(Message)
-                    .where(
-                        Message.user_id == user_id,
-                        Message.timestamp > (items[-1].timestamp if items else around),
-                    )
-                )
-            )
+
+            has_older = len(older) > limit
+            has_newer = len(newer) > limit
+            items = list(reversed(older[:limit]))
+            if anchor is not None:
+                items.append(anchor)
+            items.extend(newer[:limit])
+
             return self._build_response(
                 items=items,
                 limit=limit,
@@ -200,23 +187,19 @@ class MessageRepository:
             )
 
         query = select(Message).where(Message.user_id == user_id)
-        order_by = Message.timestamp.desc()
+        is_forward = after is not None
 
         if before:
             query = query.where(Message.timestamp < before)
         if after:
             query = query.where(Message.timestamp > after)
-            order_by = Message.timestamp.asc()
+        order_by = Message.timestamp.asc() if is_forward else Message.timestamp.desc()
 
         items = self.session.scalars(query.order_by(order_by).limit(limit + 1)).all()
         has_more = len(items) > limit
-        items = items[:limit]
-        if after:
-            items = list(items)
-        else:
-            items = list(items)
+        items = list(items[:limit])
 
-        if order_by == Message.timestamp.desc():
+        if not is_forward:
             items = list(reversed(items))
             has_older = has_more
             has_newer = (
@@ -339,10 +322,10 @@ class SearchRepository:
             params["user_id"] = request.user_id
         if request.date_from is not None:
             filters.append("m.timestamp >= :date_from")
-            params["date_from"] = request.date_from.isoformat()
+            params["date_from"] = request.date_from
         if request.date_to is not None:
             filters.append("m.timestamp <= :date_to")
-            params["date_to"] = request.date_to.isoformat()
+            params["date_to"] = request.date_to
 
         where_clause = " AND ".join(filters)
         rows = self.session.execute(
