@@ -79,8 +79,8 @@ class SearchRequest(BaseModel):
     user_id: int | None = None
     date_from: datetime | None = None
     date_to: datetime | None = None
-    limit: int = 50
-    offset: int = 0
+    limit: int = Field(default=50, gt=0)
+    offset: int = Field(default=0, ge=0)
     mode: SearchMode = SearchMode.SIMPLE
 
 
@@ -102,7 +102,7 @@ class ExportRequest(BaseModel):
     user_id: int | None = None
     date_from: datetime | None = None
     date_to: datetime | None = None
-    limit: int = 1000
+    limit: int = Field(default=1000, gt=0)
 
 
 class ExportMessageItem(BaseModel):

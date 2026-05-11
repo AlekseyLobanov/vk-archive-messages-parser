@@ -26,6 +26,7 @@ class ImportService:
         errors = 0
         imported = 0
         skipped = 0
+        touched_user_ids: set[int] = set()
 
         self.logger.info("import.started", root_path=str(root_path), total_files=total)
 
@@ -37,10 +38,10 @@ class ImportService:
                     conversation_repository = ConversationRepository(session)
 
                     conversation_repository.ensure_conversation(parsed_file)
+                    touched_user_ids.add(parsed_file.user_id)
                     inserted_count, skipped_count = message_repository.insert_messages(
                         parsed_file
                     )
-                    conversation_repository.upsert_from_import(parsed_file)
                     session.commit()
 
                     imported += inserted_count
@@ -56,6 +57,8 @@ class ImportService:
                         status="processed",
                     )
                 except Exception as exc:
+                    # Best-effort import is intentional: one bad file should not stop
+                    # the rest of the local archive from being processed.
                     session.rollback()
                     errors += 1
                     self.logger.exception(
@@ -75,6 +78,10 @@ class ImportService:
                     skipped=skipped,
                 ),
             )
+
+        with self.session_factory() as session:
+            ConversationRepository(session).refresh_from_import(touched_user_ids)
+            session.commit()
 
         self.logger.info(
             "import.finished",

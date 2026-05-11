@@ -1,12 +1,13 @@
 from collections.abc import AsyncIterator
 from datetime import datetime
 from pathlib import Path
+from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import Response, StreamingResponse
 from sqlalchemy.orm import Session, sessionmaker
 
-from app.core.settings import base_dir
+from app.core.settings import config_dir
 from app.repositories.storage import (
     ConversationRepository,
     MessageRepository,
@@ -42,7 +43,9 @@ async def add_archive(request_data: AddRequest, request: Request) -> StreamingRe
     import_service = ImportService(session_factory)
     archive_path = Path(request_data.path)
     if not archive_path.is_absolute():
-        archive_path = (base_dir() / archive_path).resolve()
+        # Local-only app: import paths are intentionally unrestricted and are
+        # resolved relative to the chosen config directory for convenience.
+        archive_path = (config_dir() / archive_path).resolve()
 
     if not archive_path.exists():
         raise HTTPException(status_code=400, detail="Import path does not exist")
@@ -61,10 +64,10 @@ async def add_archive(request_data: AddRequest, request: Request) -> StreamingRe
 
 @router.get("/conversations", response_model=ConversationListResponse)
 async def list_conversations(
-    sort: str = "last_message_at",
-    order: str = "desc",
-    limit: int = 50,
-    offset: int = 0,
+    sort: Literal["last_message_at", "message_count"] = "last_message_at",
+    order: Literal["desc", "asc"] = "desc",
+    limit: int = Query(default=50, gt=0),
+    offset: int = Query(default=0, ge=0),
     session: Session = Depends(get_session),  # noqa: B008
 ) -> ConversationListResponse:
     repository = ConversationRepository(session)
@@ -77,7 +80,7 @@ async def list_conversations(
 @router.get("/messages/{user_id}", response_model=MessageListResponse)
 async def list_messages(
     user_id: int,
-    limit: int = 50,
+    limit: int = Query(default=50, gt=0),
     before: datetime | None = None,
     after: datetime | None = None,
     around: datetime | None = None,

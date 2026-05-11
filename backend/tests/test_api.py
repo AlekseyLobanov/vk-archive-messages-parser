@@ -1,6 +1,6 @@
-from pathlib import Path
-
 import pytest
+
+from app.core.settings import app_dir
 
 
 @pytest.mark.anyio
@@ -28,7 +28,7 @@ async def test_serves_built_frontend(client) -> None:
 
 @pytest.mark.anyio
 async def test_import_search_messages_and_export(client) -> None:
-    messages_dir = (Path.cwd().resolve().parent / "messages").resolve()
+    messages_dir = (app_dir() / "messages").resolve()
     import_response = await client.post("/api/v1/add", json={"path": str(messages_dir)})
     body = import_response.text
 

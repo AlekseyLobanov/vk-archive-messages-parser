@@ -225,7 +225,7 @@ def load_settings(config_path: Path | None) -> Settings:
     if config_path is None:
         return get_settings()
 
-    os.environ["VK_ARCHIVE_CONFIG"] = str(config_path.resolve())
+    os.environ["VK_ARCHIVE_CONFIG"] = str(config_path.expanduser().resolve())
     get_settings.cache_clear()
     return get_settings()
 

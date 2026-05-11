@@ -10,6 +10,7 @@ from app.core.settings import (
     LoggingSettings,
     ServerSettings,
     Settings,
+    app_dir,
 )
 from app.db.init_db import run_migrations
 from app.db.session import create_engine, create_session_factory
@@ -69,7 +70,7 @@ def imported_archive(session_factory) -> None:
     from app.services.importer import ImportService
 
     service = ImportService(session_factory)
-    list(service.import_archive(Path("messages")))
+    list(service.import_archive(app_dir() / "messages"))
 
 
 @pytest.fixture

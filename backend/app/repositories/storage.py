@@ -60,23 +60,34 @@ class ConversationRepository:
             conversation.display_name = parsed_file.display_name
         return conversation
 
-    def upsert_from_import(self, parsed_file: ParsedConversationFile) -> None:
-        stats = self.session.execute(
+    def refresh_from_import(self, user_ids: set[int]) -> None:
+        if not user_ids:
+            return
+
+        stats_rows = self.session.execute(
             select(
+                Message.user_id,
                 func.count(Message.id),
                 func.min(Message.timestamp),
                 func.max(Message.timestamp),
-            ).where(Message.user_id == parsed_file.user_id)
-        ).one()
-        message_count, first_message_at, last_message_at = stats
+            )
+            .where(Message.user_id.in_(user_ids))
+            .group_by(Message.user_id)
+        ).all()
+        stats_by_user_id = {
+            row.user_id: (row[1] or 0, row[2], row[3]) for row in stats_rows
+        }
 
-        conversation = self.session.get(Conversation, parsed_file.user_id)
-        if conversation is None:
-            conversation = self.ensure_conversation(parsed_file)
-        conversation.display_name = parsed_file.display_name
-        conversation.first_message_at = first_message_at
-        conversation.last_message_at = last_message_at
-        conversation.message_count = message_count or 0
+        conversations = self.session.scalars(
+            select(Conversation).where(Conversation.user_id.in_(user_ids))
+        ).all()
+        for conversation in conversations:
+            message_count, first_message_at, last_message_at = stats_by_user_id.get(
+                conversation.user_id, (0, None, None)
+            )
+            conversation.first_message_at = first_message_at
+            conversation.last_message_at = last_message_at
+            conversation.message_count = message_count
 
 
 class MessageRepository:

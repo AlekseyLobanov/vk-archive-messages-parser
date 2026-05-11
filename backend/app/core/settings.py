@@ -10,18 +10,27 @@ def _config_path() -> Path | None:
     configured_path = os.getenv("VK_ARCHIVE_CONFIG")
     if not configured_path:
         return None
-    return Path(configured_path).expanduser().resolve()
+    path = Path(configured_path).expanduser()
+    if path.is_absolute():
+        return path.resolve()
+
+    working_dir = Path(os.getenv("PWD", Path.cwd())).expanduser().resolve()
+    return (working_dir / path).resolve()
 
 
-def base_dir() -> Path:
+def config_dir() -> Path:
     config_path = _config_path()
-    if config_path is not None:
-        return config_path.parent
+    if config_path is None:
+        raise RuntimeError("VK_ARCHIVE_CONFIG must point to a TOML config file")
+    return config_path.parent
 
-    current_dir = Path.cwd().resolve()
-    if (current_dir / "pyproject.toml").exists():
-        return current_dir.parent
-    return current_dir
+
+def app_dir() -> Path:
+    current = Path(__file__).resolve()
+    for directory in current.parents:
+        if (directory / "alembic.ini").exists() and (directory / "web-out").exists():
+            return directory
+    raise RuntimeError(f"Could not locate app directory from {current}")
 
 
 class DatabaseSettings(BaseModel):
@@ -37,7 +46,7 @@ class LoggingSettings(BaseModel):
     def resolved_path(self) -> Path:
         path = Path(self.path)
         if not path.is_absolute():
-            path = (base_dir() / path).resolve()
+            path = (config_dir() / path).resolve()
         return path
 
 

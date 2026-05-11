@@ -4,7 +4,7 @@ from sqlalchemy import create_engine as sqlalchemy_create_engine
 from sqlalchemy.engine import Engine, make_url
 from sqlalchemy.orm import sessionmaker
 
-from app.core.settings import base_dir
+from app.core.settings import config_dir
 
 
 def resolve_database_url(database_url: str) -> str:
@@ -16,7 +16,7 @@ def resolve_database_url(database_url: str) -> str:
         return database_url
     path = Path(database)
     if not path.is_absolute():
-        path = (base_dir() / path).resolve()
+        path = (config_dir() / path).resolve()
     return f"sqlite:///{path}"
 
 
