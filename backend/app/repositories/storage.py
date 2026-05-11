@@ -1,10 +1,11 @@
 import re
 from datetime import datetime
 
-from sqlalchemy import desc, func, select, text
+from sqlalchemy import bindparam, desc, func, select, text
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.orm import Session
 
+from app.db.types import UTCDateTime
 from app.models import Conversation, Message
 from app.parsers.vk_html.parser import ParsedConversationFile
 from app.schemas.api import (
@@ -322,35 +323,57 @@ class SearchRepository:
             params["user_id"] = request.user_id
         if request.date_from is not None:
             filters.append("m.timestamp >= :date_from")
-            params["date_from"] = request.date_from.isoformat()
+            params["date_from"] = request.date_from
         if request.date_to is not None:
             filters.append("m.timestamp <= :date_to")
-            params["date_to"] = request.date_to.isoformat()
+            params["date_to"] = request.date_to
 
         where_clause = " AND ".join(filters)
+        search_statement = text(
+            f"""
+            SELECT m.user_id, c.display_name, m.timestamp, m.direction, m.text
+            FROM messages_fts
+            JOIN messages m ON m.id = messages_fts.message_id
+            JOIN conversations c ON c.user_id = m.user_id
+            WHERE {where_clause}
+            ORDER BY m.timestamp DESC
+            LIMIT :limit OFFSET :offset
+            """
+        )
+        total_statement = text(
+            f"""
+            SELECT COUNT(*)
+            FROM messages_fts
+            JOIN messages m ON m.id = messages_fts.message_id
+            WHERE {where_clause}
+            """
+        )
+        if request.date_from is not None:
+            search_statement = search_statement.bindparams(
+                bindparam("date_from", type_=UTCDateTime())
+            )
+            total_statement = total_statement.bindparams(
+                bindparam("date_from", type_=UTCDateTime())
+            )
+        if request.date_to is not None:
+            search_statement = search_statement.bindparams(
+                bindparam("date_to", type_=UTCDateTime())
+            )
+            total_statement = total_statement.bindparams(
+                bindparam("date_to", type_=UTCDateTime())
+            )
         rows = self.session.execute(
-            text(
-                f"""
-                SELECT m.user_id, c.display_name, m.timestamp, m.direction, m.text
-                FROM messages_fts
-                JOIN messages m ON m.id = messages_fts.message_id
-                JOIN conversations c ON c.user_id = m.user_id
-                WHERE {where_clause}
-                ORDER BY m.timestamp DESC
-                LIMIT :limit OFFSET :offset
-                """
+            search_statement.columns(
+                user_id=Message.user_id.type,
+                display_name=Conversation.display_name.type,
+                timestamp=UTCDateTime(),
+                direction=Message.direction.type,
+                text=Message.text.type,
             ),
             params,
         ).all()
         total = self.session.scalar(
-            text(
-                f"""
-                SELECT COUNT(*)
-                FROM messages_fts
-                JOIN messages m ON m.id = messages_fts.message_id
-                WHERE {where_clause}
-                """
-            ),
+            total_statement,
             params,
         )
 
@@ -358,11 +381,7 @@ class SearchRepository:
             SearchItem(
                 user_id=row.user_id,
                 display_name=row.display_name,
-                timestamp=(
-                    datetime.fromisoformat(row.timestamp)
-                    if isinstance(row.timestamp, str)
-                    else row.timestamp
-                ),
+                timestamp=row.timestamp,
                 direction=row.direction,
                 text=row.text,
             )
