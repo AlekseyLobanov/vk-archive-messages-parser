@@ -1,7 +1,15 @@
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import StrEnum
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
+
+
+def normalize_datetime_to_utc(value: datetime | None) -> datetime | None:
+    if value is None:
+        return None
+    if value.tzinfo is None:
+        return value.replace(tzinfo=UTC)
+    return value.astimezone(UTC)
 
 
 class SearchMode(StrEnum):
@@ -83,6 +91,10 @@ class SearchRequest(BaseModel):
     offset: int = Field(default=0, ge=0)
     mode: SearchMode = SearchMode.SIMPLE
 
+    _normalize_datetimes = field_validator("date_from", "date_to")(
+        normalize_datetime_to_utc
+    )
+
 
 class SearchItem(BaseModel):
     user_id: int
@@ -103,6 +115,10 @@ class ExportRequest(BaseModel):
     date_from: datetime | None = None
     date_to: datetime | None = None
     limit: int = Field(default=1000, gt=0)
+
+    _normalize_datetimes = field_validator("date_from", "date_to")(
+        normalize_datetime_to_utc
+    )
 
 
 class ExportMessageItem(BaseModel):

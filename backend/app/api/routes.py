@@ -21,6 +21,7 @@ from app.schemas.api import (
     MessageListResponse,
     SearchRequest,
     SearchResponse,
+    normalize_datetime_to_utc,
 )
 from app.services.exporter import export_messages
 from app.services.importer import ImportService
@@ -98,9 +99,9 @@ async def list_messages(
         return repository.list_messages(
             user_id=user_id,
             limit=limit,
-            before=before,
-            after=after,
-            around=around,
+            before=normalize_datetime_to_utc(before),
+            after=normalize_datetime_to_utc(after),
+            around=normalize_datetime_to_utc(around),
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc

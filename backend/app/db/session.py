@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from sqlalchemy import create_engine as sqlalchemy_create_engine
+from sqlalchemy import event
 from sqlalchemy.engine import Engine, make_url
 from sqlalchemy.orm import sessionmaker
 
@@ -35,9 +36,21 @@ def create_engine(database_url: str) -> Engine:
     connect_args = {}
     if resolved_database_url.startswith("sqlite"):
         connect_args["check_same_thread"] = False
-    return sqlalchemy_create_engine(
+    engine = sqlalchemy_create_engine(
         resolved_database_url, future=True, connect_args=connect_args
     )
+    if resolved_database_url.startswith("sqlite"):
+        _enable_sqlite_foreign_keys(engine)
+    return engine
+
+
+def _enable_sqlite_foreign_keys(engine: Engine) -> None:
+    @event.listens_for(engine, "connect")
+    def set_sqlite_pragma(dbapi_connection, connection_record) -> None:
+        del connection_record
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
 
 
 def create_session_factory(engine: Engine) -> sessionmaker:

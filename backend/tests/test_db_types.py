@@ -2,7 +2,7 @@ from datetime import UTC, datetime, timedelta, timezone
 
 from sqlalchemy import select, text
 
-from app.models import Message
+from app.models import Conversation, Message
 
 
 def test_utc_datetime_normalizes_aware_values_to_utc(session_factory) -> None:
@@ -11,6 +11,7 @@ def test_utc_datetime_normalizes_aware_values_to_utc(session_factory) -> None:
     )
 
     with session_factory() as session:
+        session.add(Conversation(user_id=1, display_name="Test User", message_count=0))
         session.add(
             Message(
                 user_id=1,

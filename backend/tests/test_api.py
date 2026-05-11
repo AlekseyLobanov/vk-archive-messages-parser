@@ -74,3 +74,64 @@ async def test_import_rejects_relative_path_without_loaded_config(client) -> Non
     assert response.json() == {
         "detail": "Relative import path requires a loaded config file"
     }
+
+
+@pytest.mark.anyio
+async def test_search_normalizes_naive_datetimes_to_utc(client, archive_root) -> None:
+    await client.post("/api/v1/add", json={"path": str(archive_root.resolve())})
+
+    response = await client.post(
+        "/api/v1/search",
+        json={
+            "query": "https",
+            "mode": "simple",
+            "user_id": 202,
+            "date_from": "2020-09-01T00:00:00",
+            "date_to": "2020-09-01T23:59:59",
+            "limit": 10,
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["total"] == 3
+    assert payload["items"][0]["timestamp"] == "2020-09-01T23:31:45Z"
+
+
+@pytest.mark.anyio
+async def test_list_messages_normalizes_naive_datetime_query_params(
+    client, archive_root
+) -> None:
+    await client.post("/api/v1/add", json={"path": str(archive_root.resolve())})
+
+    response = await client.get(
+        "/api/v1/messages/303",
+        params={"around": "2017-08-09T11:33:28", "limit": 2},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["context"]["anchor_timestamp"] == "2017-08-09T11:33:28Z"
+    assert payload["context"]["highlighted_timestamp"] == "2017-08-09T11:33:28Z"
+
+
+@pytest.mark.anyio
+async def test_export_normalizes_naive_datetimes_to_utc(client, archive_root) -> None:
+    await client.post("/api/v1/add", json={"path": str(archive_root.resolve())})
+
+    response = await client.post(
+        "/api/v1/export",
+        json={
+            "format": "json",
+            "user_id": 202,
+            "date_from": "2020-09-01T00:00:00",
+            "date_to": "2020-09-01T23:59:59",
+            "limit": 20,
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload
+    assert payload[0]["timestamp"] == "2020-09-01T16:28:26Z"
+    assert payload[-1]["timestamp"] == "2020-09-01T23:31:45Z"
