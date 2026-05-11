@@ -107,7 +107,7 @@ describe("App", () => {
     await user.click(screen.getByRole("button", { name: "Найти" }));
 
     await user.click(
-      await screen.findByRole("link", { name: "Открыть контекст сообщения" }),
+      await screen.findByRole("link", { name: "Открыть в диалоге" }),
     );
 
     expect(

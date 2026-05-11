@@ -35,7 +35,7 @@ export function ExportPage() {
       link.download = filename;
       link.click();
       URL.revokeObjectURL(objectUrl);
-      setStatus(`Файл ${filename} подготовлен.`);
+      setStatus(`Файл готов: ${filename}`);
     } catch (caughtError) {
       setError(toErrorMessage(caughtError));
     } finally {
@@ -49,8 +49,8 @@ export function ExportPage() {
         <div>
           <h2>Экспорт сообщений</h2>
           <p className="muted">
-            Можно выгрузить весь архив или ограничиться одним диалогом и
-            диапазоном дат.
+            Экспортируйте весь архив или только часть сообщений по диалогу и
+            дате.
           </p>
         </div>
       </div>
@@ -69,7 +69,15 @@ export function ExportPage() {
         </label>
 
         <label className="field">
-          User ID
+          <span className="field-label">
+            User ID
+            <span className="tooltip" tabIndex={0} aria-label="Подсказка по User ID">
+              <span aria-hidden="true">ⓘ</span>
+              <span className="tooltip__content" role="tooltip">
+                ID пользователя VK из архива.
+              </span>
+            </span>
+          </span>
           <input
             inputMode="numeric"
             value={userId}
@@ -97,7 +105,7 @@ export function ExportPage() {
         </label>
 
         <label className="field">
-          Лимит
+          Лимит сообщений
           <input
             inputMode="numeric"
             value={limit}
@@ -107,7 +115,7 @@ export function ExportPage() {
 
         <div className="field field-actions">
           <button type="submit" className="primary-button" disabled={loading}>
-            {loading ? "Готовлю…" : "Экспортировать"}
+            {loading ? "Подготавливаю файл…" : "Экспортировать"}
           </button>
         </div>
       </form>

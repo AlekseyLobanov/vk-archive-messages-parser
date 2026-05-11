@@ -254,6 +254,12 @@ button {
   color: var(--muted);
 }
 
+.field-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .field-wide {
   grid-column: 1 / -1;
 }
@@ -289,7 +295,9 @@ button {
 }
 
 .theme-toggle {
-  min-width: 148px;
+  min-width: 52px;
+  justify-content: center;
+  font-size: 1.1rem;
 }
 
 .conversation-list,
@@ -461,6 +469,59 @@ button {
 .mode-badge.advanced {
   background: rgba(251, 191, 36, 0.16);
   color: #fde68a;
+}
+
+.inline-doc-link {
+  text-decoration: underline;
+  text-decoration-color: currentColor;
+  text-underline-offset: 0.16em;
+}
+
+.inline-doc-link:hover,
+.inline-doc-link:focus-visible {
+  color: var(--accent-strong);
+}
+
+.tooltip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.2rem;
+  height: 1.2rem;
+  border-radius: 999px;
+  border: 1px solid var(--surface-border);
+  background: var(--surface-muted);
+  color: var(--text);
+  cursor: help;
+  outline: none;
+}
+
+.tooltip__content {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 10px);
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: min(260px, 70vw);
+  padding: 0.6rem 0.75rem;
+  border-radius: 12px;
+  border: 1px solid var(--surface-border);
+  background: color-mix(in srgb, var(--surface) 95%, black 5%);
+  box-shadow: var(--shadow);
+  color: var(--text);
+  font-size: 0.88rem;
+  line-height: 1.35;
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity 160ms ease, visibility 160ms ease;
+  z-index: 10;
+}
+
+.tooltip:hover .tooltip__content,
+.tooltip:focus-visible .tooltip__content {
+  visibility: visible;
+  opacity: 1;
 }
 
 .status-card,

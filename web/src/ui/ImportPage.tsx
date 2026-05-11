@@ -46,8 +46,12 @@ export function ImportPage() {
           <div>
             <h2>Импорт архива</h2>
             <p className="muted">
-              Укажите путь к корню архива. Backend обработает HTML-файлы и будет
-              присылать прогресс по SSE.
+              Укажите путь к архиву сообщений. Во время импорта будет показан
+              прогресс.
+            </p>
+            <p className="muted">
+              Импорт не перезаписывает данные, а дополняет базу новыми
+              сообщениями.
             </p>
           </div>
         </div>
@@ -58,12 +62,12 @@ export function ImportPage() {
             <input
               value={path}
               onChange={(event) => setPath(event.target.value)}
-              placeholder="/path/to/messages"
+              placeholder="./messages"
             />
           </label>
 
           <button type="submit" className="primary-button" disabled={status === "running"}>
-            {status === "running" ? "Импорт идет…" : "Запустить импорт"}
+            {status === "running" ? "Импортируем…" : "Запустить импорт"}
           </button>
         </form>
       </div>
@@ -72,7 +76,7 @@ export function ImportPage() {
         <div className="panel-header">
           <div>
             <h2>Прогресс</h2>
-            <p className="muted">Импорт считается по числу обработанных файлов.</p>
+            <p className="muted">Прогресс считается по числу файлов.</p>
           </div>
         </div>
 

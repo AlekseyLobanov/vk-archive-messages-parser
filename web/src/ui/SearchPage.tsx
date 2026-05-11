@@ -5,6 +5,8 @@ import { ApiError, searchMessages } from "../lib/api";
 import type { SearchMode, SearchResultItem } from "../lib/types";
 import { formatDateTime, highlightText, toIsoOrUndefined } from "../lib/utils";
 
+const FTS_DOCS_URL = "https://www.sqlite.org/fts5.html#full_text_query_syntax";
+
 export function SearchPage() {
   const [query, setQuery] = useState("");
   const [userId, setUserId] = useState("");
@@ -48,11 +50,25 @@ export function SearchPage() {
           <div>
             <h2>Поиск по сообщениям</h2>
             <p className="muted">
-              Ищите по всем перепискам или ограничивайте поиск одним user ID.
+              Ищите по всем перепискам или только по одному собеседнику.
             </p>
           </div>
           <span className={mode === "fts" ? "mode-badge advanced" : "mode-badge"}>
-            {mode === "fts" ? "Расширенный FTS режим" : "Обычный поиск"}
+            {mode === "fts" ? (
+              <>
+                Расширенный{" "}
+                <a
+                  className="inline-doc-link"
+                  href={FTS_DOCS_URL}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  FTS
+                </a>
+              </>
+            ) : (
+              "Обычный поиск"
+            )}
           </span>
         </div>
 
@@ -63,7 +79,7 @@ export function SearchPage() {
               required
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder={mode === "fts" ? "phrase OR word*" : "например, сумерки"}
+              placeholder={mode === "fts" ? "\"точная фраза\" OR теле*" : "например, сумерки"}
             />
           </label>
 
@@ -73,13 +89,21 @@ export function SearchPage() {
               value={mode}
               onChange={(event) => setMode(event.target.value as SearchMode)}
             >
-              <option value="simple">simple</option>
-              <option value="fts">fts</option>
+              <option value="simple">Обычный</option>
+              <option value="fts">FTS</option>
             </select>
           </label>
 
           <label className="field">
-            User ID
+            <span className="field-label">
+              User ID
+              <span className="tooltip" tabIndex={0} aria-label="Подсказка по User ID">
+                <span aria-hidden="true">ⓘ</span>
+                <span className="tooltip__content" role="tooltip">
+                  ID пользователя VK из архива.
+                </span>
+              </span>
+            </span>
             <input
               inputMode="numeric"
               value={userId}
@@ -115,8 +139,16 @@ export function SearchPage() {
 
         {mode === "fts" ? (
           <p className="status-card warning">
-            Включен расширенный режим: запрос уйдёт в backend как ручное
-            FTS-выражение.
+            Расширенный режим (
+            <a
+              className="inline-doc-link"
+              href={FTS_DOCS_URL}
+              target="_blank"
+              rel="noreferrer"
+            >
+              FTS
+            </a>
+            ): можно использовать операторы AND, OR, NOT, фразы и префиксы.
           </p>
         ) : null}
         {error ? <p className="status-card error">{error}</p> : null}
@@ -153,12 +185,12 @@ export function SearchPage() {
                 to={`/conversations/${item.user_id}?around=${encodeURIComponent(item.timestamp)}`}
                 state={{ userId: item.user_id, displayName: item.display_name }}
               >
-                Открыть контекст сообщения
+                Открыть в диалоге
               </Link>
             </article>
           ))}
           {!loading && results.length === 0 ? (
-            <p className="status-card">Пока ничего не найдено.</p>
+            <p className="status-card">Ничего не найдено.</p>
           ) : null}
         </div>
       </div>

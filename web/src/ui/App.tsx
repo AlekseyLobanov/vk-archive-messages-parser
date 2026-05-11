@@ -27,8 +27,8 @@ export function App() {
     <div className="app-shell">
       <header className="topbar">
         <div>
-          <h1>VK archive viewer</h1>
-          <p className="muted">Локальный офлайн-просмотрщик архива сообщений VK</p>
+          <h1>Архив сообщений VK</h1>
+          <p className="muted">Локальный просмотр архива сообщений VK</p>
         </div>
         <div className="topbar-actions">
           <nav className="topnav" aria-label="Основная навигация">
@@ -49,8 +49,9 @@ export function App() {
             className="theme-toggle"
             onClick={() => setTheme((current) => (current === "dark" ? "light" : "dark"))}
             aria-label="Переключить тему"
+            title={theme === "dark" ? "Светлая тема" : "Тёмная тема"}
           >
-            {theme === "dark" ? "Светлая тема" : "Тёмная тема"}
+            <span aria-hidden="true">{theme === "dark" ? "☀" : "☾"}</span>
           </button>
         </div>
       </header>

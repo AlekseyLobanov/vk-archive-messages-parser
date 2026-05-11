@@ -392,10 +392,10 @@ export function ConversationsPage() {
         <div className="panel-header">
           <div>
             <h2>Переписки</h2>
-            <p className="muted">{total} диалогов в локальной базе</p>
+            <p className="muted">{total} диалогов</p>
           </div>
           <Link className="ghost-link" to="/import">
-            Импортировать ещё
+            Импортировать
           </Link>
         </div>
 
@@ -441,7 +441,7 @@ export function ConversationsPage() {
                 <span>{conversation.message_count} сообщений</span>
               </div>
               <div className="conversation-card__meta">
-                <span>ID {conversation.user_id}</span>
+                <span>ID: {conversation.user_id}</span>
                 <span>{formatDateTime(conversation.last_message_at)}</span>
               </div>
             </Link>
@@ -455,9 +455,9 @@ export function ConversationsPage() {
             <h2>{selectedConversationName ?? "Выберите переписку"}</h2>
             <p className="muted">
               {selectedConversation
-                ? `Первое сообщение: ${formatDateTime(selectedConversation.first_message_at)}`
+                ? `Начало переписки: ${formatDateTime(selectedConversation.first_message_at)}`
                 : selectedUserId
-                  ? `Диалог user_id ${selectedUserId}`
+                  ? `Диалог User ID ${selectedUserId}`
                   : "Откройте диалог слева"}
             </p>
           </div>
@@ -473,7 +473,7 @@ export function ConversationsPage() {
         </div>
 
         {!selectedUserId ? (
-          <p className="status-card">Список пуст или переписка не выбрана.</p>
+          <p className="status-card">Выберите переписку.</p>
         ) : null}
 
         {selectedUserId && loadingMessages && messages.length === 0 ? (
@@ -482,7 +482,8 @@ export function ConversationsPage() {
 
         <div className="timeline-toolbar">
           <div className="muted">
-            Окно сообщений ограничено {MAX_RENDERED_MESSAGES} элементами, чтобы чат не разрастался бесконечно в DOM.
+            На экране показана часть сообщений. Остальные можно загрузить
+            кнопками выше и ниже.
           </div>
           <div className="timeline-toolbar__actions">
             <button
@@ -529,7 +530,7 @@ export function ConversationsPage() {
                 onClick={() => void shiftAnchor(-30)}
                 disabled={!currentAnchorTimestamp || jumping}
               >
-                -30д
+                -30 дн.
               </button>
               <button
                 type="button"
@@ -537,7 +538,7 @@ export function ConversationsPage() {
                 onClick={() => void shiftAnchor(30)}
                 disabled={!currentAnchorTimestamp || jumping}
               >
-                +30д
+                +30 дн.
               </button>
               <button
                 type="button"
@@ -593,8 +594,8 @@ export function ConversationsPage() {
           <div ref={topSentinelRef} className="sentinel" />
           <div className="timeline-status">
             {paging?.has_older
-              ? "Догрузка вверх включена"
-              : "Начало переписки достигнуто"}
+              ? "Прокрутите вверх, чтобы загрузить предыдущие сообщения"
+              : "Это начало переписки"}
           </div>
 
           <div className="timeline">
@@ -615,7 +616,7 @@ export function ConversationsPage() {
               </div>
               <p>{message.text}</p>
               {message.has_attachments ? (
-                <span className="attachment-flag">Есть вложения</span>
+                <span className="attachment-flag">С вложениями</span>
               ) : null}
             </article>
           ))}
@@ -623,8 +624,8 @@ export function ConversationsPage() {
 
           <div className="timeline-status timeline-status--bottom">
             {paging?.has_newer
-              ? "Есть более новые сообщения вне текущего окна"
-              : "Конец переписки достигнут"}
+              ? "Есть более новые сообщения"
+              : "Это конец переписки"}
           </div>
         </div>
       </section>
