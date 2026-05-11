@@ -5,6 +5,7 @@ from sqlalchemy import bindparam, desc, func, select, text
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.orm import Session
 
+from app.db.fts import messages_fts
 from app.db.types import UTCDateTime
 from app.models import Conversation, Message
 from app.parsers.vk_html.parser import ParsedConversationFile
@@ -311,71 +312,43 @@ class SearchRepository:
 
     def search_messages(self, request: SearchRequest) -> SearchResponse:
         search_query = self._build_search_query(request.query, request.mode)
-        filters = ["messages_fts.text MATCH :fts_query"]
-        params: dict[str, object] = {
-            "fts_query": search_query,
-            "limit": request.limit,
-            "offset": request.offset,
-        }
+        params: dict[str, object] = {"fts_query": search_query}
+        filters = [messages_fts.c.text.op("MATCH")(bindparam("fts_query"))]
 
         if request.user_id is not None:
-            filters.append("m.user_id = :user_id")
+            filters.append(Message.user_id == request.user_id)
             params["user_id"] = request.user_id
         if request.date_from is not None:
-            filters.append("m.timestamp >= :date_from")
+            filters.append(Message.timestamp >= bindparam("date_from", UTCDateTime()))
             params["date_from"] = request.date_from
         if request.date_to is not None:
-            filters.append("m.timestamp <= :date_to")
+            filters.append(Message.timestamp <= bindparam("date_to", UTCDateTime()))
             params["date_to"] = request.date_to
 
-        where_clause = " AND ".join(filters)
-        search_statement = text(
-            f"""
-            SELECT m.user_id, c.display_name, m.timestamp, m.direction, m.text
-            FROM messages_fts
-            JOIN messages m ON m.id = messages_fts.message_id
-            JOIN conversations c ON c.user_id = m.user_id
-            WHERE {where_clause}
-            ORDER BY m.timestamp DESC
-            LIMIT :limit OFFSET :offset
-            """
+        search_statement = (
+            select(
+                Message.user_id,
+                Conversation.display_name,
+                Message.timestamp,
+                Message.direction,
+                Message.text,
+            )
+            .select_from(messages_fts)
+            .join(Message, Message.id == messages_fts.c.message_id)
+            .join(Conversation, Conversation.user_id == Message.user_id)
+            .where(*filters)
+            .order_by(Message.timestamp.desc())
+            .limit(request.limit)
+            .offset(request.offset)
         )
-        total_statement = text(
-            f"""
-            SELECT COUNT(*)
-            FROM messages_fts
-            JOIN messages m ON m.id = messages_fts.message_id
-            WHERE {where_clause}
-            """
+        total_statement = (
+            select(func.count())
+            .select_from(messages_fts)
+            .join(Message, Message.id == messages_fts.c.message_id)
+            .where(*filters)
         )
-        if request.date_from is not None:
-            search_statement = search_statement.bindparams(
-                bindparam("date_from", type_=UTCDateTime())
-            )
-            total_statement = total_statement.bindparams(
-                bindparam("date_from", type_=UTCDateTime())
-            )
-        if request.date_to is not None:
-            search_statement = search_statement.bindparams(
-                bindparam("date_to", type_=UTCDateTime())
-            )
-            total_statement = total_statement.bindparams(
-                bindparam("date_to", type_=UTCDateTime())
-            )
-        rows = self.session.execute(
-            search_statement.columns(
-                user_id=Message.user_id.type,
-                display_name=Conversation.display_name.type,
-                timestamp=UTCDateTime(),
-                direction=Message.direction.type,
-                text=Message.text.type,
-            ),
-            params,
-        ).all()
-        total = self.session.scalar(
-            total_statement,
-            params,
-        )
+        rows = self.session.execute(search_statement, params).all()
+        total = self.session.scalar(total_statement, params)
 
         items = [
             SearchItem(

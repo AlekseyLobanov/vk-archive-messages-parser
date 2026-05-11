@@ -115,6 +115,39 @@ def test_search_messages_applies_filters_and_offset(
     assert "https://" in response.items[0].text
 
 
+def test_search_messages_offset_returns_next_page(
+    imported_archive, session_factory
+) -> None:
+    with session_factory() as session:
+        repository = SearchRepository(session)
+        first_page = repository.search_messages(
+            SearchRequest(
+                query="https",
+                mode="simple",
+                user_id=202,
+                limit=1,
+                offset=0,
+            )
+        )
+        second_page = repository.search_messages(
+            SearchRequest(
+                query="https",
+                mode="simple",
+                user_id=202,
+                limit=1,
+                offset=1,
+            )
+        )
+
+    assert first_page.total == second_page.total == 4
+    assert len(first_page.items) == 1
+    assert len(second_page.items) == 1
+    assert first_page.items[0].user_id == second_page.items[0].user_id == 202
+    assert first_page.items[0].timestamp > second_page.items[0].timestamp
+    assert "https://" in first_page.items[0].text
+    assert "https://" in second_page.items[0].text
+
+
 def test_search_messages_rejects_queries_without_searchable_tokens(
     session_factory,
 ) -> None:
