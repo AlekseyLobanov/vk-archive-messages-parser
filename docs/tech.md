@@ -33,8 +33,7 @@
 Сценарий локального запуска:
 1. Запустить backend.
 2. Backend читает TOML-конфиг из `VK_ARCHIVE_CONFIG` или из аргумента `--config`.
-3. Backend проверяет sqlite-файл.
-4. Если файл базы отсутствует, выполняется `alembic upgrade head`.
+3. Backend выполняет `alembic upgrade head`.
 5. Backend поднимает API и раздаёт frontend из `web-out`.
 
 Frontend не требуется запускать отдельным процессом для обычного использования собранного приложения.
@@ -345,7 +344,7 @@ Request:
 Команды:
 
 ```bash
-make tests
+make test
 make lint
 make format
 make migrate
